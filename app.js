@@ -67,33 +67,36 @@ async function logout() {
 
 // Загрузка видео
 async function uploadVideo() {
-    const file = document.getElementById('videoFile').files[0]
-    const caption = document.getElementById('videoCaption').value
-    const statusElement = document.getElementById('uploadStatus')
+    const file = document.getElementById('videoFile').files[0];
+    const caption = document.getElementById('videoCaption').value;
+    const statusElement = document.getElementById('uploadStatus');
 
     if (!file) {
-        statusElement.textContent = 'Выберите видеофайл!'
-        return
+        statusElement.textContent = 'Выберите видеофайл!';
+        return;
     }
 
     try {
-        statusElement.textContent = 'Загрузка...'
+        statusElement.textContent = 'Загрузка...';
 
         // Создаем уникальное имя файла
-        const fileExt = file.name.split('.').pop()
-        const fileName = `videos/${currentUser.id}/${Date.now()}.${fileExt}`
+        const fileExt = file.name.split('.').pop();
+        const fileName = `videos/${currentUser.id}/${Date.now()}.${fileExt}`;
 
         // Загружаем файл в Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from('videos')
-            .upload(fileName, file)
+            .upload(fileName, file);
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+            console.error('Storage error:', uploadError);
+            throw uploadError;
+        }
 
         // Получаем публичную ссылку
         const { data: urlData } = supabase.storage
             .from('videos')
-            .getPublicUrl(fileName)
+            .getPublicUrl(fileName);
 
         // Сохраняем информацию о видео в базу данных
         const { data: dbData, error: dbError } = await supabase
@@ -103,21 +106,34 @@ async function uploadVideo() {
                     owner_id: currentUser.id,
                     caption: caption,
                     video_url: urlData.publicUrl,
-                    file_path: fileName
+                    file_path: fileName,
+                    likes_count: 0
                 }
             ])
+            .select(); // Добавляем .select() для возврата данных
 
-        if (dbError) throw dbError
+        if (dbError) {
+            console.error('Database error:', dbError);
+            throw dbError;
+        }
 
-        statusElement.textContent = '✅ Видео загружено успешно!'
+        statusElement.textContent = '✅ Видео загружено успешно!';
         setTimeout(() => {
-            closeUploadForm()
-            loadVideos()
-        }, 1500)
+            closeUploadForm();
+            loadVideos();
+        }, 1500);
 
     } catch (error) {
-        console.error('Ошибка загрузки:', error)
-        statusElement.textContent = 'Ошибка: ' + error.message
+        console.error('Полная ошибка:', error);
+        statusElement.textContent = 'Ошибка: ' + error.message;
+        
+        // Показываем детали ошибки в консоли
+        if (error.details) {
+            console.error('Детали ошибки:', error.details);
+        }
+        if (error.hint) {
+            console.error('Подсказка:', error.hint);
+        }
     }
 }
 
@@ -221,4 +237,5 @@ document.addEventListener('DOMContentLoaded', () => {
             showLoginScreen()
         }
     })
+
 })

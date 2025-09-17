@@ -143,13 +143,10 @@ async function loadVideos() {
     videoContainer.innerHTML = '<p>Загрузка...</p>'
 
     try {
-        // Получаем видео из базы данных
+        // Упрощенный запрос без JOIN
         const { data: videos, error } = await supabase
             .from('videos')
-            .select(`
-                *,
-                profiles:owner_id (username)
-            `)
+            .select('*') // Только основные поля
             .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -161,8 +158,23 @@ async function loadVideos() {
             return
         }
 
+        // Получаем информацию о пользователях отдельно
+        const userIds = [...new Set(videos.map(video => video.owner_id))]
+        const { data: users, error: usersError } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .in('id', userIds)
+
+        const usersMap = {}
+        if (users) {
+            users.forEach(user => {
+                usersMap[user.id] = user
+            })
+        }
+
         // Отображаем видео
         videos.forEach(video => {
+            const user = usersMap[video.owner_id] || { username: 'Неизвестный пользователь' }
             const card = document.createElement('div')
             card.className = 'video-card'
             
@@ -172,6 +184,7 @@ async function loadVideos() {
                     Ваш браузер не поддерживает видео.
                 </video>
                 <div class="video-info">
+                    <p class="video-author">Автор: ${user.username}</p>
                     <p class="video-caption">${video.caption || ''}</p>
                     <div class="video-actions">
                         <button class="action-btn" onclick="toggleLike('${video.id}')">
@@ -192,7 +205,6 @@ async function loadVideos() {
         videoContainer.innerHTML = '<p>Ошибка загрузки ленты.</p>'
     }
 }
-
 // Функция лайка
 async function toggleLike(videoId) {
     // Реализуйте логику лайков по необходимости
@@ -239,3 +251,4 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
 })
+

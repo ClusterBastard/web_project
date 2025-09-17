@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NasTyok ❤️</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <h1>NasTyok ❤️</h1>
+            <p>only for nassya </p>
+            <input type="email" id="emailField" placeholder="Email">
+            <input type="password" id="passwordField" placeholder="Пароль">
+            <button onclick="login()">Войти</button>
+            <button onclick="signup()">Регистрация</button>
+            <p id="loginError" class="error-message"></p>
+        </div>
+    </div>
+
+    <div id="mainScreen" class="screen hidden">
+        <header>
+            <h1>For Us</h1>
+            <span class="material-icons" onclick="showUploadForm()">video_library</span>
+            <span class="material-icons" onclick="logout()">logout</span>
+        </header>
+
+        <div id="videoContainer"></div>
+
+        <div id="uploadForm" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeUploadForm()">&times;</span>
+                <h2>Новое видео</h2>
+                <input type="file" id="videoFile" accept="video/*">
+                <input type="text" id="videoCaption" placeholder="Описание...">
+                <button onclick="uploadVideo()">Загрузить</button>
+                <p id="uploadStatus"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>

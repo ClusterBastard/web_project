@@ -1,0 +1,196 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+}
+
+body {
+    background-color: #000;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Общие стили для экранов */
+.screen {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.hidden {
+    display: none !important;
+}
+
+/* ЭКРАН ЛОГИНА */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    padding: 20px;
+    gap: 15px;
+}
+.login-container h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+.login-container p {
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+.login-container input {
+    width: 100%;
+    max-width: 300px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #222;
+    color: white;
+    font-size: 16px;
+}
+.login-container button {
+    width: 100%;
+    max-width: 300px;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #fe2c55; /* Знаменитый розовый цвет TikTok */
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+}
+.error-message {
+    color: #fe2c55;
+    margin-top: 10px;
+}
+
+/* ШАПКА ГЛАВНОГО ЭКРАНА */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.9);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+header h1 {
+    font-size: 1.5em;
+}
+header .material-icons {
+    font-size: 28px;
+    cursor: pointer;
+}
+
+/* КОНТЕЙНЕР ДЛЯ ВИДЕО */
+#videoContainer {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.video-card {
+    width: 100%;
+    max-width: 400px;
+    background: #111;
+    border-radius: 15px;
+    overflow: hidden;
+}
+.video-card video {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #000;
+}
+.video-info {
+    padding: 12px;
+}
+.video-caption {
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+.video-actions {
+    display: flex;
+    gap: 15px;
+}
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+}
+.action-btn .material-icons {
+    font-size: 20px;
+}
+.action-btn.liked {
+    color: #fe2c55;
+}
+
+/* МОДАЛЬНОЕ ОКНО ЗАГРУЗКИ */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background-color: #222;
+    padding: 25px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.modal-content h2 {
+    margin-bottom: 10px;
+}
+.modal-content input {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+}
+.modal-content button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #fe2c55;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close {
+    color: #aaa;
+    align-self: flex-end;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close:hover {
+    color: white;
+}
+#uploadStatus {
+    min-height: 20px;
+    text-align: center;
+}

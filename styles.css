@@ -12,7 +12,6 @@ body {
     overflow: hidden;
 }
 
-/* Общие стили для экранов */
 .screen {
     width: 100%;
     height: 100vh;
@@ -23,7 +22,6 @@ body {
     display: none !important;
 }
 
-/* ЭКРАН ЛОГИНА */
 .login-container {
     display: flex;
     flex-direction: column;
@@ -79,7 +77,6 @@ body {
     margin-top: 10px;
 }
 
-/* ШАПКА ГЛАВНОГО ЭКРАНА */
 header {
     display: flex;
     justify-content: space-between;
@@ -113,7 +110,6 @@ header .material-icons:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* ЛЕНТА ВИДЕО */
 .video-feed {
     flex: 1;
     position: relative;
@@ -186,8 +182,14 @@ header .material-icons:hover {
     font-size: 24px;
     margin-bottom: 4px;
 }
+.action-btn.liked {
+    color: #fe2c55;
+}
+.likes-count {
+    font-size: 14px;
+    font-weight: bold;
+}
 
-/* КНОПКИ НАВИГАЦИИ */
 .navigation-buttons {
     position: fixed;
     right: 20px;
@@ -219,7 +221,6 @@ header .material-icons:hover {
     font-size: 24px;
 }
 
-/* МОДАЛЬНОЕ ОКНО */
 .modal {
     position: fixed;
     z-index: 2000;
@@ -289,7 +290,62 @@ header .material-icons:hover {
     color: #00ff88;
 }
 
-/* Адаптивность */
+#commentsModal .modal-content {
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+#commentsList {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 300px;
+    margin-bottom: 15px;
+    padding-right: 10px;
+}
+.comment {
+    padding: 12px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border-left: 3px solid #fe2c55;
+}
+.comment-author {
+    font-weight: bold;
+    color: #fe2c55;
+    margin-bottom: 5px;
+}
+.comment-text {
+    color: #fff;
+    line-height: 1.4;
+}
+.comment-time {
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+}
+.comment-input {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+#commentText {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 20px;
+    background: #2a2a2a;
+    color: white;
+}
+.comment-input button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 20px;
+    background: #fe2c55;
+    color: white;
+    cursor: pointer;
+}
+
 @media (max-width: 768px) {
     .login-container h1 {
         font-size: 2em;
@@ -310,99 +366,10 @@ header .material-icons:hover {
     }
 }
 
-/* Анимации */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 .video-item {
     animation: fadeIn 0.3s ease-out;
-}
-
-/* Свайп-индикатор */
-.swipe-indicator {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    opacity: 0.7;
-    font-size: 14px;
-}
-
-/* Стили для модального окна комментариев */
-#commentsModal .modal-content {
-    max-width: 500px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-}
-
-#commentsList {
-    flex: 1;
-    overflow-y: auto;
-    max-height: 300px;
-    margin-bottom: 15px;
-    padding-right: 10px;
-}
-
-.comment {
-    padding: 12px;
-    margin-bottom: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    border-left: 3px solid #fe2c55;
-}
-
-.comment-author {
-    font-weight: bold;
-    color: #fe2c55;
-    margin-bottom: 5px;
-}
-
-.comment-text {
-    color: #fff;
-    line-height: 1.4;
-}
-
-.comment-time {
-    font-size: 12px;
-    color: #888;
-    margin-top: 5px;
-}
-
-.comment-input {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-#commentText {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 20px;
-    background: #2a2a2a;
-    color: white;
-}
-
-.comment-input button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 20px;
-    background: #fe2c55;
-    color: white;
-    cursor: pointer;
-}
-
-/* Улучшенные стили для лайков */
-.likes-count {
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.action-btn.liked {
-    color: #fe2c55 !important;
-    background: rgba(254, 44, 85, 0.2) !important;
 }

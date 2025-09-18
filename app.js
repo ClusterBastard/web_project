@@ -66,6 +66,47 @@ async function logout() {
     currentUser = null
     showLoginScreen()
 }
+// функция для проверки ориенатции видео
+function checkVideoOrientation(videoElement) {
+    return new Promise((resolve) => {
+        if (videoElement.videoWidth && videoElement.videoHeight) {
+            const isPortrait = videoElement.videoHeight > videoElement.videoWidth;
+            resolve(isPortrait ? 'portrait' : 'landscape');
+            return;
+        }
+
+        videoElement.addEventListener('loadedmetadata', function() {
+            const isPortrait = videoElement.videoHeight > videoElement.videoWidth;
+            resolve(isPortrait ? 'portrait' : 'landscape');
+        });
+
+        videoElement.addEventListener('error', function() {
+            resolve('landscape');
+        });
+    });
+}
+
+// Функция для调整 размера видео
+function adjustVideoSize(videoElement) {
+    const container = videoElement.parentElement;
+    if (!container) return;
+
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    // Определяем ориентацию
+    const isPortrait = videoElement.classList.contains('portrait');
+    
+    if (isPortrait) {
+        // Для вертикальных видео - ограничиваем по высоте
+        videoElement.style.height = Math.min(containerHeight * 0.85, window.innerHeight * 0.85) + 'px';
+        videoElement.style.width = 'auto';
+    } else {
+        // Для горизонтальных видео - ограничиваем по ширине
+        videoElement.style.width = Math.min(containerWidth * 0.95, window.innerWidth * 0.95) + 'px';
+        videoElement.style.height = 'auto';
+    }
+}
 
 // Загрузка видео
 async function uploadVideo() {
@@ -125,27 +166,117 @@ async function uploadVideo() {
 
 // Загрузка и отображение видео
 async function loadVideos() {
-    const videoContainer = document.getElementById('videoContainer')
-    videoContainer.innerHTML = '<p>Загрузка...</p>'
+    const videoContainer = document.getElementById('videoContainer');
+    videoContainer.innerHTML = '<p>Загрузка...</p>';
 
     try {
-        // Получаем видео из базы данных
         const { data: videos, error } = await supabase
             .from('videos')
             .select('*')
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
 
-        if (error) throw error
+        if (error) {
+            console.error('Ошибка загрузки видео:', error);
+            throw error;
+        }
 
-        currentVideos = videos
-        currentVideoIndex = 0
-
-        videoContainer.innerHTML = ''
+        currentVideos = videos;
+        currentVideoIndex = 0;
+        videoContainer.innerHTML = '';
 
         if (videos.length === 0) {
-            videoContainer.innerHTML = '<p>Пока нет видео. Будьте первым!</p>'
-            return
+            videoContainer.innerHTML = '<p>Пока нет видео. Будьте первым!</p>';
+            return;
         }
+
+        // Загружаем количество лайков и комментариев
+        const videoIds = videos.map(v => v.id);
+        
+        const { data: likesData } = await supabase
+            .from('likes')
+            .select('video_id')
+            .in('video_id', videoIds);
+            
+        const { data: commentsData } = await supabase
+            .from('comments')
+            .select('video_id')
+            .in('video_id', videoIds);
+        // Создаем видео элементы
+        for (const [index, video] of videos.entries()) {
+            const videoItem = document.createElement('div');
+            videoItem.className = 'video-item';
+            videoItem.dataset.index = index;
+            
+            if (index === 0) videoItem.classList.add('active');
+            
+            const likesCount = likesData?.filter(like => like.video_id === video.id).length || 0;
+            const commentsCount = commentsData?.filter(comment => comment.video_id === video.id).length || 0;
+            const isLiked = userLikes.has(video.id);
+
+            videoItem.innerHTML = `
+                <div class="video-card">
+                    <video controls playsinline>
+                        <source src="${video.video_url}" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                    <div class="video-info">
+                        <p class="video-caption">${video.caption || ''}</p>
+                        <div class="video-actions">
+                            <button class="action-btn ${isLiked ? 'liked' : ''}" 
+                                    onclick="toggleLike(${video.id}, ${likesCount}, this)">
+                                <span class="material-icons">favorite</span>
+                                <span class="likes-count">${likesCount}</span>
+                            </button>
+                            <button class="action-btn" onclick="showComments(${video.id})">
+                                <span class="material-icons">chat_bubble</span>
+                                <span>${commentsCount}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            videoContainer.appendChild(videoItem);
+        }
+        // После создания всех видео, настраиваем их размер
+       setTimeout(() => {
+            setupVideoSizing();
+            initSwipeEvents();
+        }, 100);
+
+    } catch (error) {
+        console.error('Ошибка загрузки видео:', error);
+        videoContainer.innerHTML = '<p>Ошибка загрузки ленты.</p>';
+    }
+}
+
+// Функция для настройки размеров видео
+function setupVideoSizing() {
+    const videos = document.querySelectorAll('.video-item video');
+    
+    videos.forEach(video => {
+        // Определяем ориентацию и добавляем класс
+        checkVideoOrientation(video).then(orientation => {
+            video.classList.add(orientation);
+            adjustVideoSize(video);
+        });
+
+        // Обработчик изменения размера видео
+        video.addEventListener('loadedmetadata', () => {
+            checkVideoOrientation(video).then(orientation => {
+                video.classList.add(orientation);
+                adjustVideoSize(video);
+            });
+        });
+
+        // Обработчик изменения размера окна
+        const resizeHandler = () => adjustVideoSize(video);
+        window.addEventListener('resize', resizeHandler);
+        
+        // Сохраняем обработчик для последующей очистки
+        video._resizeHandler = resizeHandler;
+    });
+}
 
         // Создаем контейнер для видео с свайпом
         videos.forEach((video, index) => {
@@ -191,28 +322,90 @@ async function loadVideos() {
 
 // Навигация по видео
 function showVideo(index) {
-    if (index < 0 || index >= currentVideos.length) return
+    if (index < 0 || index >= currentVideos.length) return;
     
     // Скрываем текущее видео
-    const currentVideo = document.querySelector('.video-item.active')
+    const currentVideo = document.querySelector('.video-item.active');
     if (currentVideo) {
-        const video = currentVideo.querySelector('video')
+        const video = currentVideo.querySelector('video');
         if (video) {
-            video.pause()
-            video.currentTime = 0
+            video.pause();
+            video.currentTime = 0;
         }
-        currentVideo.classList.remove('active')
+        currentVideo.classList.remove('active');
     }
     
     // Показываем новое видео
-    currentVideoIndex = index
-    const newVideo = document.querySelector(`.video-item[data-index="${index}"]`)
+    currentVideoIndex = index;
+    const newVideo = document.querySelector(`.video-item[data-index="${index}"]`);
     if (newVideo) {
-        newVideo.classList.add('active')
-        const video = newVideo.querySelector('video')
+        newVideo.classList.add('active');
+        const video = newVideo.querySelector('video');
         if (video) {
-            video.play().catch(e => console.log('Auto-play prevented:', e))
+            // Настраиваем размер перед воспроизведением
+            adjustVideoSize(video);
+            video.play().catch(e => console.log('Auto-play prevented:', e));
         }
+    }
+}
+
+// Добавляем обработчик изменения размера окна
+function initResizeHandler() {
+    let resizeTimeout;
+    
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const activeVideo = document.querySelector('.video-item.active video');
+            if (activeVideo) {
+                adjustVideoSize(activeVideo);
+            }
+        }, 250);
+    });
+}
+
+// Инициализируем обработчик изменения размера при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Приложение загружено');
+    checkAuth();
+    initResizeHandler();
+    
+    // Слушаем изменения аутентификации
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event);
+        if (event === 'SIGNED_IN' && session?.user) {
+            currentUser = session.user;
+            await loadUserLikes();
+            showMainScreen();
+            loadVideos();
+        } else if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            userLikes.clear();
+            showLoginScreen();
+        }
+    });
+});
+
+// Очистка обработчиков при размонтировании
+function cleanupVideoListeners() {
+    const videos = document.querySelectorAll('video');
+    videos.forEach(video => {
+        if (video._resizeHandler) {
+            window.removeEventListener('resize', video._resizeHandler);
+        }
+    });
+}
+
+// Вызываем очистку при выходе
+async function logout() {
+    try {
+        cleanupVideoListeners();
+        await supabase.auth.signOut();
+        currentUser = null;
+        userLikes.clear();
+        showLoginScreen();
+    } catch (error) {
+        console.error('Ошибка выхода:', error);
     }
 }
 
@@ -314,4 +507,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     })
 })
+
 

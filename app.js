@@ -1,5 +1,6 @@
+// Конфигурация Supabase
 const SUPABASE_URL = 'https://pukfphzdgcdnwjdtqrjr.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2ZwaHpkZ2NkbndqZHRxcmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTM0NzksImV4cCI6MjA3MzY4OTQ3OX0.zKnWq9akgm8SBD2JJ0u_fjXU07ZEXbhLpTZzoSsQOck'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2ZwaHpkZ2NkbndqZHRxcmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY1Njc2MTcsImV4cCI6MjA0MjE0MzYxN30.9pW5ZR0V4pXpDfN8Jf5qk7Q0nY6Q2V1L2Q3Q4Q5Q6Q'
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
@@ -36,83 +37,43 @@ async function loadUserLikes() {
         userLikes = new Set(likes.map(like => like.video_id))
     }
 }
-// Вход
-async function login() {
-    const email = document.getElementById('emailField').value;
-    const password = document.getElementById('passwordField').value;
-    const errorElement = document.getElementById('loginError');
 
-    // Простая валидация
-    if (!email || !password) {
-        errorElement.textContent = 'Заполните все поля';
-        return;
-    }
+// Регистрация
+async function signup() {
+    const email = document.getElementById('emailField').value
+    const password = document.getElementById('passwordField').value
+    const errorElement = document.getElementById('loginError')
 
-    try {
-        console.log('Попытка входа:', email);
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
+    const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+    })
 
-        if (error) {
-            console.error('Ошибка входа:', error);
-            errorElement.textContent = 'Ошибка: ' + error.message;
-            
-            // Попробуем зарегистрировать, если пользователь не существует
-            if (error.message.includes('Invalid login credentials')) {
-                errorElement.textContent += '. Пробуем зарегистрировать...';
-                await signup();
-            }
-        } else {
-            console.log('Успешный вход:', data.user);
-            currentUser = data.user;
-            showMainScreen();
-            loadVideos();
-        }
-    } catch (error) {
-        console.error('Неожиданная ошибка:', error);
-        errorElement.textContent = 'Ошибка соединения';
+    if (error) {
+        errorElement.textContent = 'Ошибка регистрации: ' + error.message
+    } else {
+        errorElement.textContent = 'Проверьте email для подтверждения!'
     }
 }
 
-// Упрощенная функция регистрации
-async function signup() {
-    const email = document.getElementById('emailField').value;
-    const password = document.getElementById('passwordField').value;
-    const errorElement = document.getElementById('loginError');
+// Вход
+async function login() {
+    const email = document.getElementById('emailField').value
+    const password = document.getElementById('passwordField').value
+    const errorElement = document.getElementById('loginError')
 
-    if (!email || !password) {
-        errorElement.textContent = 'Заполните все поля';
-        return;
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+    })
 
-    try {
-        console.log('Попытка регистрации:', email);
-        
-        const { data, error } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-        });
-
-        if (error) {
-            console.error('Ошибка регистрации:', error);
-            errorElement.textContent = 'Ошибка регистрации: ' + error.message;
-        } else {
-            console.log('Успешная регистрация:', data.user);
-            errorElement.textContent = 'Регистрация успешна! Проверьте email для подтверждения.';
-            
-            // Автоматически входим после регистрации
-            if (data.user) {
-                currentUser = data.user;
-                showMainScreen();
-                loadVideos();
-            }
-        }
-    } catch (error) {
-        console.error('Неожиданная ошибка:', error);
-        errorElement.textContent = 'Ошибка соединения';
+    if (error) {
+        errorElement.textContent = 'Ошибка входа: ' + error.message
+    } else {
+        currentUser = data.user
+        await loadUserLikes()
+        showMainScreen()
+        loadVideos()
     }
 }
 
@@ -470,7 +431,8 @@ function initSwipeEvents() {
 // Переключение между экранами
 function showLoginScreen() {
     document.getElementById('loginScreen').classList.remove('hidden')
-    document.getElementById('mainScreen').classList.add
+    document.getElementById('mainScreen').classList.add('hidden')
+}
 
 function showMainScreen() {
     document.getElementById('loginScreen').classList.add('hidden')

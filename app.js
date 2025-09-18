@@ -431,3 +431,37 @@ function initSwipeEvents() {
 function showLoginScreen() {
     document.getElementById('loginScreen').classList.remove('hidden')
     document.getElementById('mainScreen').classList.add
+
+function showMainScreen() {
+    document.getElementById('loginScreen').classList.add('hidden')
+    document.getElementById('mainScreen').classList.remove('hidden')
+}
+
+function showUploadForm() {
+    document.getElementById('uploadForm').classList.remove('hidden')
+}
+
+function closeUploadForm() {
+    document.getElementById('uploadForm').classList.add('hidden')
+    document.getElementById('videoFile').value = ''
+    document.getElementById('videoCaption').value = ''
+    document.getElementById('uploadStatus').textContent = ''
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth()
+    
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+            currentUser = session.user
+            await loadUserLikes()
+            showMainScreen()
+            loadVideos()
+        } else if (event === 'SIGNED_OUT') {
+            currentUser = null
+            userLikes.clear()
+            showLoginScreen()
+        }
+    })
+})

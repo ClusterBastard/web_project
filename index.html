@@ -29,9 +29,7 @@
             </div>
         </header>
 
-        <div id="videoContainer" class="video-feed">
-            <!-- Видео будут добавляться здесь -->
-        </div>
+        <div id="videoContainer" class="video-feed"></div>
 
         <div id="uploadForm" class="modal hidden">
             <div class="modal-content">
@@ -44,7 +42,18 @@
             </div>
         </div>
 
-        <!-- Кнопки навигации -->
+        <div id="commentsModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeCommentsModal()">&times;</span>
+                <h2>Комментарии</h2>
+                <div id="commentsList"></div>
+                <div class="comment-input">
+                    <input type="text" id="commentText" placeholder="Напишите комментарий...">
+                    <button onclick="addComment()">Отправить</button>
+                </div>
+            </div>
+        </div>
+
         <div class="navigation-buttons">
             <button class="nav-btn" onclick="prevVideo()">
                 <span class="material-icons">arrow_upward</span>
@@ -55,7 +64,6 @@
         </div>
     </div>
 
-    <!-- Подключаем Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
 </body>

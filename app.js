@@ -1,13 +1,13 @@
-// Конфигурация Supabase - ЗАМЕНИТЕ НА СВОИ ДАННЫЕ!
 const SUPABASE_URL = 'https://pukfphzdgcdnwjdtqrjr.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2ZwaHpkZ2NkbndqZHRxcmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTM0NzksImV4cCI6MjA3MzY4OTQ3OX0.zKnWq9akgm8SBD2JJ0u_fjXU07ZEXbhLpTZzoSsQOck'
 
-// Инициализация Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 let currentUser = null
 let currentVideos = []
 let currentVideoIndex = 0
+let currentVideoId = null
+let userLikes = new Set()
 
 // Проверяем состояние аутентификации
 async function checkAuth() {
@@ -15,10 +15,25 @@ async function checkAuth() {
     
     if (session?.user) {
         currentUser = session.user
+        await loadUserLikes()
         showMainScreen()
         loadVideos()
     } else {
         showLoginScreen()
+    }
+}
+
+// Загрузка лайков пользователя
+async function loadUserLikes() {
+    if (!currentUser) return
+    
+    const { data: likes, error } = await supabase
+        .from('likes')
+        .select('video_id')
+        .eq('user_id', currentUser.id)
+    
+    if (!error && likes) {
+        userLikes = new Set(likes.map(like => like.video_id))
     }
 }
 
@@ -55,6 +70,7 @@ async function login() {
         errorElement.textContent = 'Ошибка входа: ' + error.message
     } else {
         currentUser = data.user
+        await loadUserLikes()
         showMainScreen()
         loadVideos()
     }
@@ -64,6 +80,7 @@ async function login() {
 async function logout() {
     await supabase.auth.signOut()
     currentUser = null
+    userLikes.clear()
     showLoginScreen()
 }
 
@@ -81,33 +98,29 @@ async function uploadVideo() {
     try {
         statusElement.textContent = 'Загрузка...'
 
-        // Создаем уникальное имя файла
         const fileExt = file.name.split('.').pop()
         const fileName = `videos/${currentUser.id}/${Date.now()}.${fileExt}`
 
-        // Загружаем файл в Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from('videos')
             .upload(fileName, file)
 
         if (uploadError) throw uploadError
 
-        // Получаем публичную ссылку
         const { data: urlData } = supabase.storage
             .from('videos')
             .getPublicUrl(fileName)
 
-        // Сохраняем информацию о видео в базу данных
         const { data: dbData, error: dbError } = await supabase
             .from('videos')
-            .insert([
-                {
-                    owner_id: currentUser.id,
-                    caption: caption,
-                    video_url: urlData.publicUrl,
-                    file_path: fileName
-                }
-            ])
+            .insert([{
+                owner_id: currentUser.id,
+                caption: caption,
+                video_url: urlData.publicUrl,
+                file_path: fileName,
+                likes_count: 0
+            }])
+            .select()
 
         if (dbError) throw dbError
 
@@ -129,10 +142,13 @@ async function loadVideos() {
     videoContainer.innerHTML = '<p>Загрузка...</p>'
 
     try {
-        // Получаем видео из базы данных
         const { data: videos, error } = await supabase
             .from('videos')
-            .select('*')
+            .select(`
+                *,
+                likes_count:likes(count),
+                comments_count:comments(count)
+            `)
             .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -147,31 +163,33 @@ async function loadVideos() {
             return
         }
 
-        // Создаем контейнер для видео с свайпом
         videos.forEach((video, index) => {
             const videoItem = document.createElement('div')
             videoItem.className = 'video-item'
             videoItem.dataset.index = index
             
-            if (index === 0) {
-                videoItem.classList.add('active')
-            }
+            if (index === 0) videoItem.classList.add('active')
             
+            const isLiked = userLikes.has(video.id)
+            const likesCount = video.likes_count?.[0]?.count || 0
+            const commentsCount = video.comments_count?.[0]?.count || 0
+
             videoItem.innerHTML = `
                 <div class="video-card">
                     <video controls playsinline>
                         <source src="${video.video_url}" type="video/mp4">
-                        Ваш браузер не поддерживает видео.
                     </video>
                     <div class="video-info">
                         <p class="video-caption">${video.caption || ''}</p>
                         <div class="video-actions">
-                            <button class="action-btn" onclick="toggleLike('${video.id}')">
+                            <button class="action-btn ${isLiked ? 'liked' : ''}" 
+                                    onclick="toggleLike(${video.id}, ${likesCount}, this)">
                                 <span class="material-icons">favorite</span>
-                                <span>${video.likes_count || 0}</span>
+                                <span class="likes-count">${likesCount}</span>
                             </button>
-                            <button class="action-btn" onclick="showComments('${video.id}')">
+                            <button class="action-btn" onclick="showComments(${video.id})">
                                 <span class="material-icons">chat_bubble</span>
+                                <span>${commentsCount}</span>
                             </button>
                         </div>
                     </div>
@@ -180,7 +198,6 @@ async function loadVideos() {
             videoContainer.appendChild(videoItem)
         })
 
-        // Инициализируем свайпы
         initSwipeEvents()
 
     } catch (error) {
@@ -189,11 +206,154 @@ async function loadVideos() {
     }
 }
 
+// Функция лайка
+async function toggleLike(videoId, currentLikes, buttonElement) {
+    if (!currentUser) return
+
+    try {
+        const isLiked = userLikes.has(videoId)
+
+        if (isLiked) {
+            // Удаляем лайк
+            const { error } = await supabase
+                .from('likes')
+                .delete()
+                .eq('video_id', videoId)
+                .eq('user_id', currentUser.id)
+
+            if (!error) {
+                userLikes.delete(videoId)
+                buttonElement.classList.remove('liked')
+                const newLikes = currentLikes - 1
+                buttonElement.querySelector('.likes-count').textContent = newLikes
+                
+                // Обновляем счетчик в базе
+                await supabase
+                    .from('videos')
+                    .update({ likes_count: newLikes })
+                    .eq('id', videoId)
+            }
+        } else {
+            // Добавляем лайк
+            const { error } = await supabase
+                .from('likes')
+                .insert([{
+                    video_id: videoId,
+                    user_id: currentUser.id
+                }])
+
+            if (!error) {
+                userLikes.add(videoId)
+                buttonElement.classList.add('liked')
+                const newLikes = currentLikes + 1
+                buttonElement.querySelector('.likes-count').textContent = newLikes
+                
+                // Обновляем счетчик в базе
+                await supabase
+                    .from('videos')
+                    .update({ likes_count: newLikes })
+                    .eq('id', videoId)
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка лайка:', error)
+    }
+}
+
+// Комментарии
+let currentCommentsVideoId = null
+
+async function showComments(videoId) {
+    currentCommentsVideoId = videoId
+    const modal = document.getElementById('commentsModal')
+    const commentsList = document.getElementById('commentsList')
+    
+    commentsList.innerHTML = '<p>Загрузка комментариев...</p>'
+    modal.classList.remove('hidden')
+    
+    await loadComments(videoId)
+}
+
+async function loadComments(videoId) {
+    const commentsList = document.getElementById('commentsList')
+    
+    try {
+        const { data: comments, error } = await supabase
+            .from('comments')
+            .select(`
+                *,
+                profiles:user_id (username)
+            `)
+            .eq('video_id', videoId)
+            .order('created_at', { ascending: true })
+
+        if (error) throw error
+
+        commentsList.innerHTML = ''
+
+        if (comments.length === 0) {
+            commentsList.innerHTML = '<p>Пока нет комментариев</p>'
+            return
+        }
+
+        comments.forEach(comment => {
+            const commentElement = document.createElement('div')
+            commentElement.className = 'comment'
+            
+            const time = new Date(comment.created_at).toLocaleString('ru-RU')
+            
+            commentElement.innerHTML = `
+                <div class="comment-author">${comment.profiles.username}:</div>
+                <div class="comment-text">${comment.text}</div>
+                <div class="comment-time">${time}</div>
+            `
+            commentsList.appendChild(commentElement)
+        })
+
+    } catch (error) {
+        console.error('Ошибка загрузки комментариев:', error)
+        commentsList.innerHTML = '<p>Ошибка загрузки комментариев</p>'
+    }
+}
+
+async function addComment() {
+    if (!currentCommentsVideoId || !currentUser) return
+
+    const commentText = document.getElementById('commentText').value.trim()
+    if (!commentText) return
+
+    try {
+        const { error } = await supabase
+            .from('comments')
+            .insert([{
+                video_id: currentCommentsVideoId,
+                user_id: currentUser.id,
+                text: commentText
+            }])
+
+        if (error) throw error
+
+        document.getElementById('commentText').value = ''
+        await loadComments(currentCommentsVideoId)
+        
+        // Обновляем счетчик комментариев в ленте
+        loadVideos()
+
+    } catch (error) {
+        console.error('Ошибка добавления комментария:', error)
+        alert('Ошибка при добавлении комментария')
+    }
+}
+
+function closeCommentsModal() {
+    document.getElementById('commentsModal').classList.add('hidden')
+    currentCommentsVideoId = null
+}
+
 // Навигация по видео
 function showVideo(index) {
     if (index < 0 || index >= currentVideos.length) return
     
-    // Скрываем текущее видео
     const currentVideo = document.querySelector('.video-item.active')
     if (currentVideo) {
         const video = currentVideo.querySelector('video')
@@ -204,7 +364,6 @@ function showVideo(index) {
         currentVideo.classList.remove('active')
     }
     
-    // Показываем новое видео
     currentVideoIndex = index
     const newVideo = document.querySelector(`.video-item[data-index="${index}"]`)
     if (newVideo) {
@@ -246,18 +405,17 @@ function initSwipeEvents() {
         const endY = e.changedTouches[0].clientY
         const diffY = startY - endY
         
-        if (Math.abs(diffY) > 50) { // Минимальное расстояние свайпа
+        if (Math.abs(diffY) > 50) {
             if (diffY > 0) {
-                nextVideo() // Свайп вверх
+                nextVideo()
             } else {
-                prevVideo() // Свайп вниз
+                prevVideo()
             }
         }
         
         isSwiping = false
     })
 
-    // Добавляем обработчики для клавиатуры
     document.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowDown') {
             nextVideo()
@@ -269,49 +427,7 @@ function initSwipeEvents() {
     })
 }
 
-// Функция лайка
-async function toggleLike(videoId) {
-    // Реализуйте логику лайков по необходимости
-    console.log('Like video:', videoId)
-}
-
 // Переключение между экранами
 function showLoginScreen() {
     document.getElementById('loginScreen').classList.remove('hidden')
-    document.getElementById('mainScreen').classList.add('hidden')
-}
-
-function showMainScreen() {
-    document.getElementById('loginScreen').classList.add('hidden')
-    document.getElementById('mainScreen').classList.remove('hidden')
-}
-
-// Модальное окно загрузки
-function showUploadForm() {
-    document.getElementById('uploadForm').classList.remove('hidden')
-}
-
-function closeUploadForm() {
-    document.getElementById('uploadForm').classList.add('hidden')
-    document.getElementById('videoFile').value = ''
-    document.getElementById('videoCaption').value = ''
-    document.getElementById('uploadStatus').textContent = ''
-}
-
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth()
-    
-    // Слушаем изменения аутентификации
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-            currentUser = session.user
-            showMainScreen()
-            loadVideos()
-        } else if (event === 'SIGNED_OUT') {
-            currentUser = null
-            showLoginScreen()
-        }
-    })
-})
-
+    document.getElementById('mainScreen').classList.add

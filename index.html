@@ -11,7 +11,7 @@
     <div id="loginScreen" class="screen">
         <div class="login-container">
             <h1>NasTyok ❤️</h1>
-            <p>only for nassya </p>
+            <p>only for nassya</p>
             <input type="email" id="emailField" placeholder="Email">
             <input type="password" id="passwordField" placeholder="Пароль">
             <button onclick="login()">Войти</button>
@@ -23,21 +23,35 @@
     <div id="mainScreen" class="screen hidden">
         <header>
             <h1>For Us</h1>
-            <span class="material-icons" onclick="showUploadForm()">video_library</span>
-            <span class="material-icons" onclick="logout()">logout</span>
+            <div class="header-icons">
+                <span class="material-icons" onclick="showUploadForm()">video_library</span>
+                <span class="material-icons" onclick="logout()">logout</span>
+            </div>
         </header>
 
-        <div id="videoContainer"></div>
+        <div id="videoContainer" class="video-feed">
+            <!-- Видео будут добавляться здесь -->
+        </div>
 
         <div id="uploadForm" class="modal hidden">
             <div class="modal-content">
                 <span class="close" onclick="closeUploadForm()">&times;</span>
                 <h2>Новое видео</h2>
-                <input type="file" id="videoFile" accept="video/*">
+                <input type="file" id="videoFile" accept="video/*" capture="environment">
                 <input type="text" id="videoCaption" placeholder="Описание...">
                 <button onclick="uploadVideo()">Загрузить</button>
                 <p id="uploadStatus"></p>
             </div>
+        </div>
+
+        <!-- Кнопки навигации -->
+        <div class="navigation-buttons">
+            <button class="nav-btn" onclick="prevVideo()">
+                <span class="material-icons">arrow_upward</span>
+            </button>
+            <button class="nav-btn" onclick="nextVideo()">
+                <span class="material-icons">arrow_downward</span>
+            </button>
         </div>
     </div>
 

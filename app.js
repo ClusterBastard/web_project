@@ -1,6 +1,6 @@
 // Конфигурация Supabase
 const SUPABASE_URL = 'https://pukfphzdgcdnwjdtqrjr.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2ZwaHpkZ2NkbndqZHRxcmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY1Njc2MTcsImV4cCI6MjA0MjE0MzYxN30.9pW5ZR0V4pXpDfN8Jf5qk7Q0nY6Q2V1L2Q3Q4Q5Q6Q'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1a2ZwaHpkZ2NkbndqZHRxcmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTM0NzksImV4cCI6MjA3MzY4OTQ3OX0.zKnWq9akgm8SBD2JJ0u_fjXU07ZEXbhLpTZzoSsQOck'
 
 // Инициализация Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -562,3 +562,4 @@ window.addComment = addComment;
 window.closeCommentsModal = closeCommentsModal;
 window.prevVideo = prevVideo;
 window.nextVideo = nextVideo;
+

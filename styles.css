@@ -123,6 +123,7 @@ header .material-icons:hover {
     justify-content: center;
     align-items: center;
     background: #000;
+    padding-bottom: 80px; /* Добавляем отступ снизу для кнопок */
 }
 
 .video-item {
@@ -146,12 +147,13 @@ header .material-icons:hover {
     justify-content: center;
     align-items: center;
     position: relative;
+    margin-bottom: 60px; /* Поднимаем видео выше */
 }
 
 /* Адаптивное видео */
 .video-card video {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 70vh; /* Уменьшаем высоту видео */
     object-fit: contain;
 }
 
@@ -179,11 +181,11 @@ header .material-icons:hover {
 /* Информация о видео */
 .video-info {
     position: absolute;
-    bottom: 0;
+    bottom: -60px; /* Поднимаем надпись выше */
     left: 0;
     right: 0;
-    padding: 20px;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 15px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
     color: white;
     z-index: 10;
 }
@@ -195,32 +197,40 @@ header .material-icons:hover {
 }
 .video-actions {
     display: flex;
-    gap: 20px;
+    gap: 25px;
     align-items: center;
+    justify-content: center;
 }
 .action-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: none;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
     color: #fff;
     cursor: pointer;
-    padding: 8px;
+    padding: 12px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
     transition: all 0.3s;
+    min-width: 60px;
 }
+
 .action-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
 }
 .action-btn .material-icons {
-    font-size: 24px;
-    margin-bottom: 4px;
+    font-size: 28px;
+    margin-bottom: 5px;
 }
+
 .action-btn.liked {
     color: #fe2c55;
+    background: rgba(254, 44, 85, 0.2);
+}
+.likes-count {
+    font-size: 14px;
+    font-weight: bold;
 }
 
 /* КНОПКИ НАВИГАЦИИ */
@@ -325,6 +335,49 @@ header .material-icons:hover {
     color: #00ff88;
 }
 
+#commentsModal .modal-content {
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+#commentsList {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 300px;
+    margin-bottom: 15px;
+    padding-right: 10px;
+}
+
+.comment {
+    padding: 12px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border-left: 3px solid #fe2c55;
+    position: relative;
+}
+
+.comment-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+.delete-comment {
+    background: rgba(255, 0, 0, 0.3);
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.delete-comment:hover {
+    background: rgba(255, 0, 0, 0.5);
+}
+
 /* Адаптивность */
 @media (max-width: 480px) {
     .video-info {
@@ -373,4 +426,5 @@ header .material-icons:hover {
     opacity: 0.7;
     font-size: 14px;
                      }
+
 

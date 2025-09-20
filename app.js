@@ -182,55 +182,62 @@ async function uploadVideo() {
 }
 
 // Загрузка и отображение видео
+// Загрузка и отображение видео (без колонки comments_count)
 async function loadVideos() {
-    const videoContainer = document.getElementById('videoContainer')
-    videoContainer.innerHTML = '<p>Загрузка...</p>'
+    const videoContainer = document.getElementById('videoContainer');
+    videoContainer.innerHTML = '<p>Загрузка...</p>';
 
     try {
-        const { data: videos, error } = await supabase
+        // Сначала загружаем видео
+        const { data: videos, error: videosError } = await supabase
             .from('videos')
             .select(`
                 *,
-                profiles:owner_id (username)
+                profiles:owner_id (username),
+                likes_count:likes(count)
             `)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false });
 
-        if (error) throw error
+        if (videosError) throw videosError;
 
-        currentVideos = videos
-        currentVideoIndex = 0
-        videoContainer.innerHTML = ''
+        // Затем загружаем количество комментариев для каждого видео
+        const videoIds = videos.map(v => v.id);
+        const { data: commentsCounts, error: commentsError } = await supabase
+            .from('comments')
+            .select('video_id, count')
+            .in('video_id', videoIds);
 
-        if (videos.length === 0) {
-            videoContainer.innerHTML = '<p>Пока нет видео. Будьте первым!</p>'
-            return
+        if (commentsError) console.error('Ошибка загрузки комментариев:', commentsError);
+
+        // Создаем карту для быстрого доступа к количеству комментариев
+        const commentsMap = {};
+        if (commentsCounts) {
+            commentsCounts.forEach(item => {
+                commentsMap[item.video_id] = item.count;
+            });
         }
 
-        // Загружаем количество лайков
-        const videoIds = videos.map(v => v.id)
-        
-        const { data: likesData, error: likesError } = await supabase
-            .from('likes')
-            .select('video_id')
-            .in('video_id', videoIds)
-            
-        const { data: commentsData, error: commentsError } = await supabase
-            .from('comments')
-            .select('video_id')
-            .in('video_id', videoIds)
+        currentVideos = videos;
+        currentVideoIndex = 0;
+        videoContainer.innerHTML = '';
+
+        if (videos.length === 0) {
+            videoContainer.innerHTML = '<p>Пока нет видео. Будьте первым!</p>';
+            return;
+        }
 
         // Создаем видео элементы
         for (const [index, video] of videos.entries()) {
-            const videoItem = document.createElement('div')
-            videoItem.className = 'video-item'
-            videoItem.dataset.index = index
+            const videoItem = document.createElement('div');
+            videoItem.className = 'video-item';
+            videoItem.dataset.index = index;
             
-            if (index === 0) videoItem.classList.add('active')
+            if (index === 0) videoItem.classList.add('active');
             
-            const likesCount = likesData?.filter(like => like.video_id === video.id).length || 0
-            const commentsCount = commentsData?.filter(comment => comment.video_id === video.id).length || 0
-            const isLiked = userLikes.has(video.id)
-            const authorName = video.profiles?.username || video.owner_id
+            const likesCount = video.likes_count?.[0]?.count || 0;
+            const commentsCount = commentsMap[video.id] || 0;
+            const isLiked = userLikes.has(video.id);
+            const authorName = video.profiles?.username || video.owner_id;
 
             videoItem.innerHTML = `
                 <div class="video-card">
@@ -253,20 +260,20 @@ async function loadVideos() {
                         </div>
                     </div>
                 </div>
-            `
+            `;
             
-            videoContainer.appendChild(videoItem)
+            videoContainer.appendChild(videoItem);
         }
 
         // Настраиваем размеры видео
         setTimeout(() => {
-            setupVideoSizing()
-            initSwipeEvents()
-        }, 100)
+            setupVideoSizing();
+            initSwipeEvents();
+        }, 100);
 
     } catch (error) {
-        console.error('Ошибка загрузки видео:', error)
-        videoContainer.innerHTML = '<p>Ошибка загрузки ленты.</p>'
+        console.error('Ошибка загрузки видео:', error);
+        videoContainer.innerHTML = '<p>Ошибка загрузки ленты.</p>';
     }
 }
 
@@ -418,12 +425,12 @@ async function loadComments(videoId) {
 
 async function addComment() {
     if (!currentCommentsVideoId || !currentUser) {
-        alert('Войдите чтобы комментировать')
-        return
+        alert('Войдите чтобы комментировать');
+        return;
     }
 
-    const commentText = document.getElementById('commentText').value.trim()
-    if (!commentText) return
+    const commentText = document.getElementById('commentText').value.trim();
+    if (!commentText) return;
 
     try {
         const { error } = await supabase
@@ -433,48 +440,39 @@ async function addComment() {
                 user_id: currentUser.id,
                 text: commentText,
                 created_at: new Date().toISOString()
-            }])
+            }]);
 
-        if (error) throw error
+        if (error) throw error;
 
-        document.getElementById('commentText').value = ''
+        document.getElementById('commentText').value = '';
+        await loadComments(currentCommentsVideoId);
         
-        // Обновляем счетчик комментариев
-        await supabase.rpc('increment_comments_count', {
-            video_id: currentCommentsVideoId
-        })
-        
-        await loadComments(currentCommentsVideoId)
-        loadVideos() // Обновляем ленту
+        // Перезагружаем видео чтобы обновить счетчик
+        loadVideos();
 
     } catch (error) {
-        console.error('Ошибка добавления комментария:', error)
-        alert('Ошибка при добавлении комментария')
+        console.error('Ошибка добавления комментария:', error);
+        alert('Ошибка при добавлении комментария');
     }
 }
 
 async function deleteComment(commentId) {
-    if (!currentUser) return
+    if (!currentUser) return;
 
     try {
         const { error } = await supabase
             .from('comments')
             .delete()
-            .eq('id', commentId)
+            .eq('id', commentId);
 
-        if (error) throw error
+        if (error) throw error;
 
-        // Обновляем счетчик комментариев
-        await supabase.rpc('decrement_comments_count', {
-            video_id: currentCommentsVideoId
-        })
-
-        await loadComments(currentCommentsVideoId)
-        loadVideos() // Обновляем ленту
+        await loadComments(currentCommentsVideoId);
+        loadVideos(); // Обновляем ленту
 
     } catch (error) {
-        console.error('Ошибка удаления комментария:', error)
-        alert('Ошибка при удалении комментария')
+        console.error('Ошибка удаления комментария:', error);
+        alert('Ошибка при удалении комментария');
     }
 }
 
@@ -631,3 +629,4 @@ window.deleteComment = deleteComment
 window.closeCommentsModal = closeCommentsModal
 window.prevVideo = prevVideo
 window.nextVideo = nextVideo
+
